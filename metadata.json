@@ -1,0 +1,5 @@
+{
+  "name": "Monty Simulation Runner",
+  "description": "A web-based interface to configure, launch, and monitor robotics simulation runs for the Monty brain and Unitree/Isaac simulators. Features include in-browser code editing, live viewport, real-time logs and metrics, and artifact management.",
+  "requestFramePermissions": []
+}
