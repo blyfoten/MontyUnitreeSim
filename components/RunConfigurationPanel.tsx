@@ -8,7 +8,13 @@ interface RunConfigurationPanelProps {
   montyImages: DockerImage[];
   simulatorImages: DockerImage[];
   brainProfiles: BrainProfile[];
-  onLaunch: () => void;
+  onLaunch: (config: {
+    montyImage: DockerImage;
+    simulatorImage: DockerImage;
+    brainProfile: BrainProfile;
+    glueCode: string;
+    checkpointIn?: string;
+  }) => void;
   isLaunching: boolean;
 }
 
@@ -33,23 +39,35 @@ export const RunConfigurationPanel: React.FC<RunConfigurationPanelProps> = ({
   isLaunching
 }) => {
   const [brainState, setBrainState] = useState<'fresh' | 'checkpoint'>('fresh');
+  const [selectedMontyImage, setSelectedMontyImage] = useState<DockerImage>(montyImages[0]);
+  const [selectedSimulatorImage, setSelectedSimulatorImage] = useState<DockerImage>(simulatorImages[0]);
+  const [selectedBrainProfile, setSelectedBrainProfile] = useState<BrainProfile>(brainProfiles[0]);
 
   return (
     <Card title="Run Configuration" icon={<PlayIcon className="w-5 h-5" />} className="h-full">
       <div className="flex flex-col h-full">
         <div className="flex-grow">
           <FormRow label="Monty Image">
-            <Select>
+            <Select value={selectedMontyImage.id} onChange={(e) => {
+              const img = montyImages.find(i => i.id === e.target.value);
+              if (img) setSelectedMontyImage(img);
+            }}>
               {montyImages.map(img => <option key={img.id} value={img.id}>{`${img.repo}:${img.tag}`}</option>)}
             </Select>
           </FormRow>
           <FormRow label="Simulator Image">
-            <Select>
+            <Select value={selectedSimulatorImage.id} onChange={(e) => {
+              const img = simulatorImages.find(i => i.id === e.target.value);
+              if (img) setSelectedSimulatorImage(img);
+            }}>
               {simulatorImages.map(img => <option key={img.id} value={img.id}>{`${img.repo}:${img.tag}`}</option>)}
             </Select>
           </FormRow>
           <FormRow label="Brain Profile">
-            <Select>
+            <Select value={selectedBrainProfile.id} onChange={(e) => {
+              const profile = brainProfiles.find(p => p.id === e.target.value);
+              if (profile) setSelectedBrainProfile(profile);
+            }}>
               {brainProfiles.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </Select>
           </FormRow>
@@ -74,7 +92,13 @@ export const RunConfigurationPanel: React.FC<RunConfigurationPanelProps> = ({
           </FormRow>
         </div>
         <button
-          onClick={onLaunch}
+          onClick={() => onLaunch({
+            montyImage: selectedMontyImage,
+            simulatorImage: selectedSimulatorImage,
+            brainProfile: selectedBrainProfile,
+            glueCode: '', // This will be passed from the GlueEditor
+            checkpointIn: brainState === 'checkpoint' ? 's3://monty-checkpoints/chkp_20240520.mstate' : undefined,
+          })}
           disabled={isLaunching}
           className="w-full bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-md flex items-center justify-center transition-all duration-200"
         >

@@ -59,15 +59,24 @@ print("Simulation finished.")
 monty.save_state("/checkpoints/out.mstate")
 `;
 
-export const GlueEditor: React.FC = () => {
+interface GlueEditorProps {
+  onCodeChange?: (code: string) => void;
+}
+
+export const GlueEditor: React.FC<GlueEditorProps> = ({ onCodeChange }) => {
   const [code, setCode] = useState(GLUE_CODE_TEMPLATE);
+
+  const handleCodeChange = (newCode: string) => {
+    setCode(newCode);
+    onCodeChange?.(newCode);
+  };
 
   return (
     <Card title="Glue Code Editor" icon={<CodeIcon className="w-5 h-5" />} className="h-full">
       <div className="relative h-full">
         <textarea
           value={code}
-          onChange={(e) => setCode(e.target.value)}
+          onChange={(e) => handleCodeChange(e.target.value)}
           spellCheck="false"
           className="w-full h-full bg-slate-900 text-slate-300 font-mono text-sm p-4 rounded-md resize-none border-2 border-transparent focus:border-cyan-500 focus:outline-none"
         />

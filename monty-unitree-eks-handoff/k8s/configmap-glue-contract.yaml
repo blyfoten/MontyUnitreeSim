@@ -1,0 +1,39 @@
+# k8s/configmap-glue-contract.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: glue-contract
+  namespace: monty-sim
+data:
+  observation.schema.json: |
+    {
+      "type": "object",
+      "required": ["time","imu","base_vel","base_pose"],
+      "properties": {
+        "time": {"type":"number"},
+        "imu": {"type":"array","items":{"type":"number"}, "minItems":6, "maxItems":6},
+        "base_vel": {"type":"array","items":{"type":"number"}, "minItems":3, "maxItems":3},
+        "base_pose": {
+          "type":"object",
+          "properties":{"roll":{"type":"number"},"pitch":{"type":"number"},"yaw":{"type":"number"},"height":{"type":"number"}},
+          "required":["roll","pitch","yaw","height"]
+        },
+        "nociceptor":{"type":"number"},
+        "energy_rate":{"type":"number"}
+      }
+    }
+  action.schema.json: |
+    {
+      "type":"object",
+      "required":["cmd_type"],
+      "properties": {
+        "cmd_type": {"type":"string","enum":["base","ee"]},
+        "base_cmd": {
+          "type":"object",
+          "properties":{
+            "vx":{"type":"number"},"vy":{"type":"number"},"yaw_rate":{"type":"number"},
+            "body_pitch":{"type":"number"},"gait":{"type":"string"}
+          }
+        }
+      }
+    }

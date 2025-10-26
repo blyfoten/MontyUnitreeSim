@@ -11,6 +11,8 @@ import { useSimulationData } from './hooks/useSimulationData';
 
 function App() {
   const [activeTab, setActiveTab] = useState<MonitorTab>('logs');
+  const [glueCode, setGlueCode] = useState('');
+  
   const {
     runs,
     logs,
@@ -45,7 +47,7 @@ function App() {
           montyImages={montyImages}
           simulatorImages={simulatorImages}
           brainProfiles={brainProfiles}
-          onLaunch={launchRun}
+          onLaunch={(config) => launchRun({ ...config, glueCode })}
           isLaunching={isLaunching}
         />
       </div>
@@ -56,7 +58,7 @@ function App() {
           <Viewport />
         </div>
         <div className="h-1/2">
-          <GlueEditor />
+          <GlueEditor onCodeChange={setGlueCode} />
         </div>
       </div>
 

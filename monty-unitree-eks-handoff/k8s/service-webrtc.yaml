@@ -1,0 +1,17 @@
+# k8s/service-webrtc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: sim-webrtc
+  namespace: monty-sim
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"  # NLB for UDP if needed
+spec:
+  type: LoadBalancer
+  selector:
+    app: sim-run
+  ports:
+    - name: tcp-rtsp
+      port: 8554
+      targetPort: 8554
+      protocol: TCP

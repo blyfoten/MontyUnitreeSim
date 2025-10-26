@@ -1,0 +1,92 @@
+# k8s/job-run-template.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sim-run-{{RUN_ID}}
+  namespace: monty-sim
+spec:
+  ttlSecondsAfterFinished: 600
+  activeDeadlineSeconds: {{ACTIVE_DEADLINE_SECONDS}}  # e.g., 5400
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: sim-run
+        run-id: "{{RUN_ID}}"
+        user: "{{USER}}"
+        profile: "{{BRAIN_PROFILE}}"
+    spec:
+      restartPolicy: Never
+      serviceAccountName: sim-runner
+      nodeSelector:
+        role: gpu
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: "Equal"
+          value: "present"
+          effect: "NoSchedule"
+      containers:
+        - name: unitree-sim
+          image: {{IMAGE_SIM}}   # e.g., <account>.dkr.ecr.<region>.amazonaws.com/unitree-sim:isaac-5.0
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              nvidia.com/gpu: 1
+          env:
+            - name: DT
+              value: "{{DT}}"
+            - name: WEBRTC
+              value: "{{WEBRTC}}"
+          ports:
+            - name: webrtc
+              containerPort: 8554
+              protocol: TCP
+          volumeMounts:
+            - { name: ckpt, mountPath: /checkpoints }
+            - { name: artifacts, mountPath: /artifacts }
+            - { name: glue, mountPath: /glue }
+        - name: monty
+          image: {{IMAGE_MONTY}} # e.g., <account>.dkr.ecr.<region>.amazonaws.com/monty:latest
+          env:
+            - { name: CHECKPOINT_IN,  value: "{{S3_CKPT_IN}}" }
+            - { name: CHECKPOINT_OUT, value: "/checkpoints/out.mstate" }
+            - { name: MONTY_CONFIG,   value: "/glue/monty.yaml" }
+            - { name: DT,             value: "{{DT}}" }
+          volumeMounts:
+            - { name: ckpt, mountPath: /checkpoints }
+            - { name: artifacts, mountPath: /artifacts }
+            - { name: glue, mountPath: /glue }
+        - name: glue
+          image: {{IMAGE_GLUE}}  # e.g., <account>.dkr.ecr.<region>.amazonaws.com/glue-base:py310
+          command: ["python","/glue/run.py"]
+          env:
+            - { name: DT, value: "{{DT}}" }
+            - { name: OBS_SCHEMA_PATH, value: "/glue/observation.schema.json" }
+            - { name: ACT_SCHEMA_PATH, value: "/glue/action.schema.json" }
+          volumeMounts:
+            - { name: ckpt, mountPath: /checkpoints }
+            - { name: artifacts, mountPath: /artifacts }
+            - { name: glue, mountPath: /glue }
+        - name: artifact-uploader
+          image: public.ecr.aws/aws-cli/aws-cli:latest
+          command:
+            - /bin/sh
+            - -lc
+            - |
+              set -e
+              echo "Uploading artifacts..."
+              aws s3 sync /artifacts {{S3_ARTIFACTS_PREFIX}}/runs/{{RUN_ID}}/artifacts --only-show-errors
+              if [ -f /checkpoints/out.mstate ]; then
+                aws s3 cp /checkpoints/out.mstate {{S3_CKPT_OUT}} --only-show-errors
+              fi
+              echo "Done."
+          volumeMounts:
+            - { name: ckpt, mountPath: /checkpoints }
+            - { name: artifacts, mountPath: /artifacts }
+      volumes:
+        - name: ckpt
+          emptyDir: {{}}
+        - name: artifacts
+          emptyDir: {{}}
+        - name: glue
+          emptyDir: {{}}

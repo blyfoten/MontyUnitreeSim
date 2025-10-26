@@ -1,0 +1,14 @@
+# brain-profiles/small.yaml
+cortex:
+  sensory_areas:
+    - name: vision
+      columns: 1024
+      cells_per_column: 16
+    - name: proprioception
+      columns: 512
+      cells_per_column: 16
+  motor_area:
+    columns: 1024
+    cells_per_column: 16
+  synapse_density: 0.05
+  learning_rate: 0.001

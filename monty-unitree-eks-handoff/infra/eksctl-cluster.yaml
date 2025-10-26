@@ -1,0 +1,35 @@
+# infra/eksctl-cluster.yaml
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: monty-unitree-eks
+  region: eu-north-1
+  version: "1.30"
+
+iam:
+  withOIDC: true
+
+vpc:
+  nat:
+    gateway: HighlyAvailable
+
+managedNodeGroups:
+  - name: cpu-ng
+    instanceType: c6i.large
+    desiredCapacity: 2
+    minSize: 1
+    maxSize: 6
+    volumeSize: 50
+    labels: { role: cpu }
+  - name: gpu-ng
+    instanceType: g5.2xlarge   # or g6e.xlarge as available in your region
+    desiredCapacity: 0
+    minSize: 0
+    maxSize: 4
+    volumeSize: 200
+    labels: { role: gpu }
+    taints:
+      - key: nvidia.com/gpu
+        value: "present"
+        effect: NoSchedule

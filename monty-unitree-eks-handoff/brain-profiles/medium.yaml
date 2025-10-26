@@ -1,0 +1,18 @@
+# brain-profiles/medium.yaml
+cortex:
+  sensory_areas:
+    - name: vision
+      columns: 2048
+      cells_per_column: 32
+    - name: proprioception
+      columns: 1024
+      cells_per_column: 32
+  associative_areas:
+    - name: sensorimotor
+      columns: 4096
+      cells_per_column: 32
+  motor_area:
+    columns: 2048
+    cells_per_column: 32
+  synapse_density: 0.08
+  learning_rate: 0.001
