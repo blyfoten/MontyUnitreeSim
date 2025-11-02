@@ -1,0 +1,3 @@
+@echo off
+echo Deploying Monty Unitree Simulation Platform...
+powershell -ExecutionPolicy Bypass -File scripts/deploy.ps1

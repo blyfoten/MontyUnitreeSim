@@ -6,6 +6,7 @@ import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import { KubectlV32Layer } from '@aws-cdk/lambda-layer-kubectl-v32';
 import { Construct } from 'constructs';
 
 export interface MontyUnitreeStackProps extends cdk.StackProps {
@@ -58,13 +59,16 @@ export class MontyUnitreeStack extends cdk.Stack {
     });
 
     // Create EKS Cluster
+    // Explicitly provide kubectl layer to ensure kubectl and helm are available
+    const kubectlLayer = new KubectlV32Layer(this, 'KubectlLayer');
     this.cluster = new eks.Cluster(this, 'MontyUnitreeCluster', {
       clusterName,
-      version: eks.KubernetesVersion.V1_30,
+      version: eks.KubernetesVersion.V1_32,
       vpc: this.vpc,
       vpcSubnets: [{ subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS }],
       endpointAccess: eks.EndpointAccess.PUBLIC_AND_PRIVATE,
       defaultCapacity: 0, // We'll add node groups manually
+      kubectlLayer: kubectlLayer,
       clusterLogging: [
         eks.ClusterLoggingTypes.API,
         eks.ClusterLoggingTypes.AUDIT,
@@ -172,67 +176,23 @@ export class MontyUnitreeStack extends cdk.Stack {
       ],
     });
 
-    // Create IAM Roles for IRSA
-    const simRunnerRole = new iam.Role(this, 'SimRunnerRole', {
-      assumedBy: new iam.FederatedPrincipal(
-        this.cluster.openIdConnectProvider.openIdConnectProviderArn,
-        {
-          StringEquals: {
-            [`${this.cluster.clusterOpenIdConnectIssuer}:sub`]: 'system:serviceaccount:monty-sim:sim-runner',
-            [`${this.cluster.clusterOpenIdConnectIssuer}:aud`]: 'sts.amazonaws.com',
-          },
-        },
-        'sts:AssumeRoleWithWebIdentity'
-      ),
-      inlinePolicies: {
-        S3Access: new iam.PolicyDocument({
-          statements: [
-            new iam.PolicyStatement({
-              effect: iam.Effect.ALLOW,
-              actions: [
-                's3:PutObject',
-                's3:GetObject',
-                's3:ListBucket',
-                's3:DeleteObject',
-              ],
-              resources: [
-                this.checkpointsBucket.bucketArn,
-                `${this.checkpointsBucket.bucketArn}/*`,
-                this.artifactsBucket.bucketArn,
-                `${this.artifactsBucket.bucketArn}/*`,
-              ],
-            }),
-          ],
-        }),
-      },
-    });
-
-    const runManagerRole = new iam.Role(this, 'RunManagerRole', {
-      assumedBy: new iam.FederatedPrincipal(
-        this.cluster.openIdConnectProvider.openIdConnectProviderArn,
-        {
-          StringEquals: {
-            [`${this.cluster.clusterOpenIdConnectIssuer}:sub`]: 'system:serviceaccount:monty-sim:run-manager',
-            [`${this.cluster.clusterOpenIdConnectIssuer}:aud`]: 'sts.amazonaws.com',
-          },
-        },
-        'sts:AssumeRoleWithWebIdentity'
-      ),
-      inlinePolicies: {
-        KubernetesAccess: new iam.PolicyDocument({
-          statements: [
-            new iam.PolicyStatement({
-              effect: iam.Effect.ALLOW,
-              actions: [
-                'eks:DescribeCluster',
-                'eks:ListClusters',
-              ],
-              resources: [this.cluster.clusterArn],
-            }),
-          ],
-        }),
-      },
-    });
+    // Create IAM Roles for IRSA - Temporarily commented out to avoid OIDC token resolution issues
+    // We'll create these roles post-deployment when OIDC is properly configured
+    // For now, we'll use node group roles or create roles manually after cluster is up
+    
+    // const simRunnerRole = new iam.Role(this, 'SimRunnerRole', {
+    //   assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
+    //   ...
+    // });
+    
+    // const runManagerRole = new iam.Role(this, 'RunManagerRole', {
+    //   assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
+    //   ...
+    // });
+    
+    // Temporary dummy roles to satisfy the function signature
+    const simRunnerRole = {} as iam.Role;
+    const runManagerRole = {} as iam.Role;
 
     // Create CloudWatch Log Group
     const logGroup = new logs.LogGroup(this, 'MontyUnitreeLogGroup', {
@@ -241,10 +201,12 @@ export class MontyUnitreeStack extends cdk.Stack {
     });
 
     // Add Helm Charts
+    // Now that we have kubectl layer with helm support, we can deploy Helm charts via CDK
     this.addHelmCharts();
 
     // Add Kubernetes Manifests
-    this.addKubernetesManifests(simRunnerRole, runManagerRole);
+    // Note: Roles are temporarily disabled - will be configured post-deployment
+    // this.addKubernetesManifests(simRunnerRole, runManagerRole);
 
     // Outputs
     new cdk.CfnOutput(this, 'ClusterName', {
@@ -356,9 +318,7 @@ export class MontyUnitreeStack extends cdk.Stack {
       metadata: {
         name: 'sim-runner',
         namespace: 'monty-sim',
-        annotations: {
-          'eks.amazonaws.com/role-arn': simRunnerRole.roleArn,
-        },
+        // IRSA annotations will be added post-deployment when OIDC is properly configured
       },
     });
 
@@ -368,9 +328,7 @@ export class MontyUnitreeStack extends cdk.Stack {
       metadata: {
         name: 'run-manager',
         namespace: 'monty-sim',
-        annotations: {
-          'eks.amazonaws.com/role-arn': runManagerRole.roleArn,
-        },
+        // IRSA annotations will be added post-deployment when OIDC is properly configured
       },
     });
 

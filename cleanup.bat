@@ -1,0 +1,3 @@
+@echo off
+echo Cleaning up Monty Unitree Simulation Platform...
+powershell -ExecutionPolicy Bypass -File scripts/cleanup.ps1 %*

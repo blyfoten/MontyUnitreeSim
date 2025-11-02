@@ -11,14 +11,16 @@
     "watch": "cdk watch"
   },
   "devDependencies": {
-    "aws-cdk": "^2.100.0",
-    "aws-cdk-lib": "^2.100.0",
-    "constructs": "^10.3.0",
+    "@aws-cdk/lambda-layer-kubectl-v32": "^2.1.0",
+    "@aws-cdk/lambda-layer-kubectl-v33": "^2.0.0",
+    "@aws-cdk/lambda-layer-kubectl-v34": "^2.0.0",
     "@types/node": "^20.0.0",
+    "aws-cdk": "^2.1031.1",
+    "aws-cdk-lib": "^2.221.1",
+    "constructs": "^10.3.0",
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "aws-cdk-lib": "^2.100.0",
     "constructs": "^10.3.0"
   }
 }

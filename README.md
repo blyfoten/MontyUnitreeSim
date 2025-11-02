@@ -35,27 +35,58 @@ A production-ready platform for running Monty + Unitree/Isaac Lab simulations on
 
 ## Quick Start
 
+> **Already deployed?** Jump to [Access Guide](docs/ACCESS_GUIDE.md) to find your endpoints and troubleshoot access issues.  
+> **Need to update tools?** Run `.\scripts\update-versions.ps1` to update AWS CLI, kubectl, and Helm.
+
 ### Prerequisites
 
+**Cross-platform requirements:**
 - AWS CLI configured with appropriate permissions
 - AWS CDK installed (`npm install -g aws-cdk`)
 - kubectl installed
-- Docker installed
+- Docker installed (Docker Desktop on Windows)
 - Node.js 18+ for frontend development
 
-### 1. Deploy Infrastructure
+**Windows-specific:**
+- PowerShell 5.1+ (PowerShell 7+ recommended)
+- WSL 2 (optional, for better Docker performance)
+- Git for Windows
 
+**macOS/Linux:**
+- Bash shell
+- Standard Unix tools
+
+### 1. Setup Development Environment
+
+**Cross-platform setup:**
 ```bash
-# Clone and navigate to project
-git clone <your-repo>
-cd MontyUnitreeSim
+# Run the automated setup script
+node scripts/setup-dev.js
+```
 
-# Deploy everything
-chmod +x scripts/deploy.sh
+**Windows:**
+```powershell
+# PowerShell
+.\scripts\deploy.ps1
+
+# Or batch file
+deploy.bat
+```
+
+**macOS/Linux:**
+```bash
+# Bash
 ./scripts/deploy.sh
 ```
 
-### 2. Configure Frontend
+The deployment script will handle:
+- CDK infrastructure deployment
+- EKS cluster creation with GPU/CPU node groups
+- S3 buckets and ECR repositories
+- Kubernetes manifest deployment
+- Docker image building and pushing
+
+### 3. Configure Frontend
 
 Update the frontend to connect to your orchestrator:
 
@@ -64,13 +95,23 @@ Update the frontend to connect to your orchestrator:
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 ```
 
-### 3. Run Frontend Locally
+### 4. Run Frontend Locally
 
+**Windows:**
+```powershell
+# Option 1: Batch file
+.\dev-frontend.bat
+
+# Option 2: npm script
+npm run dev
+```
+
+**macOS/Linux:**
 ```bash
-# Install dependencies
-npm install
+# Option 1: Shell script
+./dev-frontend.sh
 
-# Start development server
+# Option 2: npm script
 npm run dev
 ```
 
@@ -251,6 +292,18 @@ kubectl describe pod <pod-name> -n monty-sim
 kubectl get nodes --show-labels
 ```
 
+**NVIDIA Device Plugin Conflicts**:
+If you encounter a deployment failure with the message "daemonsets.apps already exists":
+```powershell
+# Run the cleanup script with Kubernetes cleanup
+.\scripts\cleanup.ps1 -CleanupKubernetes
+
+# Or manually clean up if the cluster still exists
+kubectl delete daemonset -n kube-system --selector app.kubernetes.io/instance=nvidia-device-plugin
+helm uninstall nvidia-device-plugin -n kube-system
+```
+The deployment script now automatically handles this during rollback scenarios.
+
 **WebRTC Connection Issues**:
 - Check TURN server configuration
 - Verify security group rules
@@ -266,6 +319,31 @@ kubectl logs <pod-name> -c artifact-uploader -n monty-sim
 kubectl get pods -n monty-sim
 curl http://<orchestrator-ip>/health
 ```
+
+### Windows-Specific Issues
+
+**PowerShell Execution Policy**:
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+**Docker Desktop Not Running**:
+- Start Docker Desktop
+- Enable WSL 2 backend
+- Check Windows Defender exclusions
+
+**AWS Credentials Not Found**:
+```powershell
+aws configure
+aws sts get-caller-identity
+```
+
+**Path Issues**:
+- Restart PowerShell after installing AWS CLI
+- Check PATH environment variable
+- Use full paths if needed
+
+For detailed Windows troubleshooting, see [Windows Development Guide](docs/WINDOWS_DEVELOPMENT.md).
 
 ### Debugging Commands
 
@@ -292,25 +370,47 @@ kubectl top pods -n monty-sim
 
 **Backend**:
 ```bash
-cd backend
-pip install -r requirements.txt
-uvicorn main:app --reload
+# Windows
+.\dev-backend.bat
+# Or
+cd backend && uvicorn main:app --reload
+
+# macOS/Linux
+./dev-backend.sh
+# Or
+cd backend && uvicorn main:app --reload
 ```
 
 **Frontend**:
 ```bash
-npm install
+# Windows
+.\dev-frontend.bat
+# Or
+npm run dev
+
+# macOS/Linux
+./dev-frontend.sh
+# Or
 npm run dev
 ```
 
 ### Testing
 
+**API Testing**:
 ```bash
-# Test API endpoints
-curl http://localhost:8000/health
-curl http://localhost:8000/runs
+# Windows PowerShell
+Invoke-WebRequest -Uri "http://localhost:8000/health" -UseBasicParsing
 
-# Test WebSocket
+# Cross-platform
+curl http://localhost:8000/health
+```
+
+**WebSocket Testing**:
+```bash
+# Install wscat globally
+npm install -g wscat
+
+# Test WebSocket connection
 wscat -c ws://localhost:8000/ws/test-run
 ```
 

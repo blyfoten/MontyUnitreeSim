@@ -6,7 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dev-frontend": "npm run dev",
+    "dev-backend": "cd backend && uvicorn main:app --reload --host 0.0.0.0 --port 8000",
+    "build-infrastructure": "cd infrastructure && cdk synth",
+    "deploy-infrastructure": "cd infrastructure && cdk deploy --all",
+    "test-api": "curl http://localhost:8000/health",
+    "kubectl-config": "aws eks update-kubeconfig --region us-east-1 --name monty-unitree-eks"
   },
   "dependencies": {
     "react": "^19.2.0",
