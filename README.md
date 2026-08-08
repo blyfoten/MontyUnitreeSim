@@ -35,6 +35,7 @@ A production-ready platform for running Monty + Unitree/Isaac Lab simulations on
 
 ## Quick Start
 
+> **Watching your AWS bill?** See [Cost Analysis](docs/COST_ANALYSIS.md) for where the money goes and cheaper alternatives, and [Local Setup](docs/LOCAL_SETUP.md) + `docker-compose.local.yml` to run the whole sim stack on one machine without AWS.  
 > **Already deployed?** Jump to [Access Guide](docs/ACCESS_GUIDE.md) to find your endpoints and troubleshoot access issues.  
 > **Need to update tools?** Run `.\scripts\update-versions.ps1` to update AWS CLI, kubectl, and Helm.
 

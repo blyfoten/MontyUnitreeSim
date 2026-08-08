@@ -1,0 +1,61 @@
+# Local equivalent of monty-unitree-eks-handoff/k8s/job-run-template.yaml.
+# One run = one `docker compose up`; artifacts/checkpoints land in ./local/.
+#
+#   cp local/.env.example local/.env
+#   docker compose -f docker-compose.local.yml --env-file local/.env up
+#
+# See docs/LOCAL_SETUP.md for details (incl. running MuJoCo without a GPU).
+
+services:
+  unitree-sim:
+    image: ${IMAGE_SIM:-unitree-sim:local}
+    environment:
+      DT: ${DT:-0.02}
+      WEBRTC: ${WEBRTC:-0}
+    ports:
+      - "8554:8554" # WebRTC/viewport, if the sim image serves one
+    volumes:
+      - ./local/checkpoints:/checkpoints
+      - ./local/artifacts:/artifacts
+      - ./local/glue:/glue
+    # GPU passthrough (Isaac Sim). Requires the NVIDIA Container Toolkit.
+    # Delete this block when using a CPU simulator such as MuJoCo.
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  monty:
+    image: ${IMAGE_MONTY:-monty:local}
+    environment:
+      CHECKPOINT_IN: ${CHECKPOINT_IN:-}
+      CHECKPOINT_OUT: /checkpoints/out.mstate
+      MONTY_CONFIG: /glue/monty.yaml
+      DT: ${DT:-0.02}
+    volumes:
+      - ./local/checkpoints:/checkpoints
+      - ./local/artifacts:/artifacts
+      - ./local/glue:/glue
+    depends_on:
+      - unitree-sim
+
+  glue:
+    image: ${IMAGE_GLUE:-glue-base:local}
+    command: ["python", "/glue/run.py"]
+    environment:
+      DT: ${DT:-0.02}
+      OBS_SCHEMA_PATH: /glue/observation.schema.json
+      ACT_SCHEMA_PATH: /glue/action.schema.json
+    volumes:
+      - ./local/checkpoints:/checkpoints
+      - ./local/artifacts:/artifacts
+      - ./local/glue:/glue
+    depends_on:
+      - unitree-sim
+      - monty
+
+# No artifact-uploader sidecar: /artifacts and /checkpoints are bind mounts,
+# so results are already on the host under ./local/.
